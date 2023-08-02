@@ -1,5 +1,5 @@
 
-<img align="right" alt="Coding" width="450" height="500" src=https://github.com/Jaaystones/alx-backend-user-data/assets/111044396/f37ee6e0-5193-4afc-ae11-492b206109d8>
+<img align="center" alt="Coding" width="450" height="500" src=https://github.com/Jaaystones/alx-backend-user-data/assets/111044396/f37ee6e0-5193-4afc-ae11-492b206109d8>
 
 
 

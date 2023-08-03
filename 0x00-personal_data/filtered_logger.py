@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A module for filtering logs.
+"""A module for filtering log.
 """
 import os
 import re

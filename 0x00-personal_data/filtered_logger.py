@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""
-Logging files
+"""A module for filtering logs.
 """
 import os
-import logging
 import re
-from typing import List
+import logging
 import mysql.connector
-from mysql.connector.connection import MySQLConnection
+from typing import List
 
 
 reg_pattern = {
@@ -17,61 +15,41 @@ reg_pattern = {
 PII_FIELDS = ("name", "email", "phone", "ssn", "password")
 
 
-def filter_datum(fields: List[str], redaction: str,
-                 message: str, separator: str) -> str:
-    """Obfuscate specified fields in the log message."""
+def filter_datum(
+        fields: List[str], redaction: str, message: str, separator: str,
+        ) -> str:
+    """Filters a log line.
+    """
     extract, replace = (reg_pattern["extract"], reg_pattern["replace"])
     return re.sub(extract(fields, separator), replace(redaction), message)
 
 
-class RedactingFormatter(logging.Formatter):
-    """ Redacting Formatter class
-        """
-
-    REDACTION = "***"
-    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
-    SEPARATOR = ";"
-    FORMAT_FIELDS = ('name', 'levelname', 'asctime', 'message')
-
-    def __init__(self, fields: List[str]):
-        super(RedactingFormatter, self).__init__(self.FORMAT)
-        self.fields = fields
-
-    def format(self, record: logging.LogRecord) -> str:
-        """formats a LogRecord.
-        """
-        msg = super(RedactingFormatter, self).format(record)
-        txt = filter_datum(self.fields, self.REDACTION, msg, self.SEPARATOR)
-        return txt
-
-
 def get_logger() -> logging.Logger:
+    """Creates a new logger for user data.
+    """
     logger = logging.getLogger("user_data")
-    logger.setLevel(logging.INFO)
-
     handler = logging.StreamHandler()
-    formatter = RedactingFormatter(fields=PII_FIELDS)
-    handler.setFormatter(formatter)
-
+    handler.setFormatter(RedactingFormatter(PII_FIELDS))
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
     logger.addHandler(handler)
-
     return logger
 
 
-def get_db() -> MySQLConnection:
-    db_username = os.environ.get("PERSONAL_DATA_DB_USERNAME", "root")
-    db_password = os.environ.get("PERSONAL_DATA_DB_PASSWORD", "")
-    db_host = os.environ.get("PERSONAL_DATA_DB_HOST", "localhost")
-    db_name = os.environ.get("PERSONAL_DATA_DB_NAME", "")
-
+def get_db() -> mysql.connector.connection.MySQLConnection:
+    """Creates a connector to a database.
+    """
+    db_host = os.getenv("PERSONAL_DATA_DB_HOST", "localhost")
+    db_name = os.getenv("PERSONAL_DATA_DB_NAME", "")
+    db_user = os.getenv("PERSONAL_DATA_DB_USERNAME", "root")
+    db_pwd = os.getenv("PERSONAL_DATA_DB_PASSWORD", "")
     connection = mysql.connector.connect(
-        user=db_username,
-        password=db_password,
         host=db_host,
         port=3306,
-        database=db_name
+        user=db_user,
+        password=db_pwd,
+        database=db_name,
     )
-
     return connection
 
 
@@ -95,6 +73,27 @@ def main():
             args = ("user_data", logging.INFO, None, None, msg, None, None)
             log_record = logging.LogRecord(*args)
             info_logger.handle(log_record)
+
+
+class RedactingFormatter(logging.Formatter):
+    """ Redacting Formatter class
+    """
+
+    REDACTION = "***"
+    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
+    FORMAT_FIELDS = ('name', 'levelname', 'asctime', 'message')
+    SEPARATOR = ";"
+
+    def __init__(self, fields: List[str]):
+        super(RedactingFormatter, self).__init__(self.FORMAT)
+        self.fields = fields
+
+    def format(self, record: logging.LogRecord) -> str:
+        """formats a LogRecord.
+        """
+        main = super(RedactingFormatter, self).format(record)
+        txt = filter_datum(self.fields, self.REDACTION, main, self.SEPARATOR)
+        return txt
 
 
 if __name__ == "__main__":

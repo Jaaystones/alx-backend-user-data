@@ -2,7 +2,9 @@
 """A simple Flask app with user authentication features.
 """
 from flask import Flask, jsonify, request, abort, redirect
+
 from auth import Auth
+
 
 app = Flask(__name__)
 AUTH = Auth()
@@ -40,9 +42,9 @@ def login() -> str:
     email, password = request.form.get("email"), request.form.get("password")
     if not AUTH.valid_login(email, password):
         abort(401)
-    session_id = AUTH.create_session(email)
+    session_no = AUTH.create_session(email)
     response = jsonify({"email": email, "message": "logged in"})
-    response.set_cookie("session_id", session_id)
+    response.set_cookie("session_no", session_no)
     return response
 
 
@@ -52,8 +54,8 @@ def logout() -> str:
     Return:
         - Redirects to home route.
     """
-    session_id = request.cookies.get("session_id")
-    user = AUTH.get_user_from_session_id(session_id)
+    session_no = request.cookies.get("session_no")
+    user = AUTH.get_user_from_session_id(session_no)
     if user is None:
         abort(403)
     AUTH.destroy_session(user.id)
@@ -66,8 +68,8 @@ def profile() -> str:
     Return:
         - The user's profile information.
     """
-    session_id = request.cookies.get("session_id")
-    user = AUTH.get_user_from_session_id(session_id)
+    session_no = request.cookies.get("session_no")
+    user = AUTH.get_user_from_session_id(session_no)
     if user is None:
         abort(403)
     return jsonify({"email": user.email})
@@ -80,27 +82,35 @@ def get_reset_password_token() -> str:
         - The user's password reset payload.
     """
     email = request.form.get("email")
+    reset_token = None
     try:
         reset_token = AUTH.get_reset_password_token(email)
-        return jsonify({"email": email, "reset_token": reset_token})
     except ValueError:
+        reset_token = None
+    if reset_token is None:
         abort(403)
+    return jsonify({"email": email, "reset_token": reset_token})
 
 
 @app.route("/reset_password", methods=["PUT"], strict_slashes=False)
 def update_password() -> str:
     """PUT /reset_password
+
     Return:
         - The user's password updated payload.
     """
     email = request.form.get("email")
     reset_token = request.form.get("reset_token")
     new_password = request.form.get("new_password")
+    is_password_changed = False
     try:
         AUTH.update_password(reset_token, new_password)
-        return jsonify({"email": email, "message": "Password updated"})
+        is_password_changed = True
     except ValueError:
+        is_password_changed = False
+    if not is_password_changed:
         abort(403)
+    return jsonify({"email": email, "message": "Password updated"})
 
 
 if __name__ == "__main__":

@@ -10,8 +10,9 @@ Base = declarative_base()
 
 
 class User(Base):
+    """Schema for a new User
+    """
     __tablename__ = 'users'
-
     id = Column(Integer, primary_key=True)
     email = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)

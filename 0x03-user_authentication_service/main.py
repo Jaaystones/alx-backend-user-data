@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A simple end-to-end (E2E) integration test for `app.py`.
+"""A simple end-to-end (EtE) integration test for `app.py`.
 """
 import requests
 
